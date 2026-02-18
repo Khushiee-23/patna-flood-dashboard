@@ -76,7 +76,7 @@ app.get('/api/weather', async(req, res) => {
                 q: 'Patna,IN',
                 appid: process.env.API_KEY,
                 units: 'metric',
-                cnt: 8 // 24hr forecast
+                cnt: 8
             }
         });
 
@@ -98,13 +98,33 @@ app.get('/api/weather', async(req, res) => {
     }
 });
 
+// Get data for a specific panchayat
+app.get('/api/panchayat/:name', (req, res) => {
+    const name = req.params.name;
+
+    if (!sensors || !sensors.panchayats) {
+        return res.status(503).json({ error: 'Sensor data not yet available' });
+    }
+
+    const panchayat = sensors.panchayats.find(
+        p => p.name.toLowerCase() === name.toLowerCase()
+    );
+
+    if (panchayat) {
+        res.json(panchayat);
+    } else {
+        res.status(404).json({ error: 'Panchayat not found' });
+    }
+});
+
+// Root endpoint (MOVE THIS TO THE END!)
 app.get('/', (req, res) => {
     res.json({
         message: 'Patna Flood Dashboard API 🚀',
-        endpoints: ['/api/sensor-data', '/api/weather'],
+        endpoints: ['/api/sensor-data', '/api/weather', '/api/panchayat/:name'],
         status: 'healthy'
     });
 });
 
 // === START SERVER ===
-app.listen(5000, () => console.log('🚀 Backend on http://localhost:5000/api/sensor-data'));
+app.listen(5000, () => console.log('🚀 Backend on http://localhost:5000'));

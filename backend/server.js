@@ -7,6 +7,26 @@ const cron = require('node-cron');
 const admin = require('firebase-admin');
 
 const app = express();
+const http = require('http');
+const { Server } = require('socket.io');
+
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: 'http://localhost:3000',
+        methods: ['GET', 'POST']
+    }
+});
+
+// Socket.io connection
+io.on('connection', (socket) => {
+    console.log('Client connected:', socket.id);
+
+    socket.on('disconnect', () => {
+        console.log('Client disconnected:', socket.id);
+    });
+});
+
 app.use(cors());
 app.use(express.json());
 
@@ -53,13 +73,14 @@ function runSimulation() {
     };
 
     // 🔥 FIREBASE SYNC (UNCOMMENTED!)
+    // Inside runSimulation(), after db.ref().set():
     db.ref('sensors/latest').set(sensors)
-        .then(() => console.log('✅ Firebase synced'))
+        .then(() => {
+            console.log('✅ Firebase synced');
+            io.emit('sensorUpdate', sensors); // ← ADD THIS LINE
+        })
         .catch(err => console.error('Firebase error:', err));
-
-    console.log('Updated sensors:', sensors.global);
 }
-
 // === CRON JOBS ===
 runSimulation(); // Run immediately on start
 cron.schedule('*/5 * * * *', runSimulation); // Then every 5 mins
@@ -127,4 +148,4 @@ app.get('/', (req, res) => {
 });
 
 // === START SERVER ===
-app.listen(5000, () => console.log('🚀 Backend on http://localhost:5000'));
+server.listen(5000, () => console.log('🚀 Backend on http://localhost:5000'));

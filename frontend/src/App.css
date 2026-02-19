@@ -21,3 +21,26 @@ body {
         opacity: 0.5;
     }
 }
+
+@keyframes slideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+
+/* Responsive adjustments */
+
+@media (max-width: 768px) {
+    header h1 {
+        font-size: 1.5rem !important;
+    }
+    header p {
+        font-size: 0.875rem !important;
+    }
+}

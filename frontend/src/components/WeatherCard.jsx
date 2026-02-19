@@ -1,127 +1,95 @@
 import React, { useState, useEffect } from 'react';
-import socket from './services/socket';
-import MapView from './components/MapView';
-import SensorCard from './components/SensorCard';
-import StatusBadge from './components/StatusBadge';
-import './App.css';
 
-function App() {
-    const [sensors, setSensors] = useState(null);
-    const [isConnected, setIsConnected] = useState(false);
+const WeatherCard = () => {
+    const [weather, setWeather] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Fetch initial data
-        fetch('http://localhost:5000/api/sensor-data')
+        fetch('http://localhost:5000/api/weather')
             .then(res => res.json())
-            .then(data => setSensors(data))
-            .catch(err => console.error('Error fetching data:', err));
-
-        // Socket.io listeners
-        socket.on('connect', () => {
-            console.log('Connected to backend');
-            setIsConnected(true);
-        });
-
-        socket.on('disconnect', () => {
-            console.log('Disconnected from backend');
-            setIsConnected(false);
-        });
-
-        socket.on('sensorUpdate', (data) => {
-            console.log('Real-time update:', data);
-            setSensors(data);
-        });
-
-        return () => {
-            socket.off('connect');
-            socket.off('disconnect');
-            socket.off('sensorUpdate');
-        };
+            .then(data => {
+                const current = data.forecast[0];
+                setWeather({
+                    city: data.city,
+                    temp: current.temp_c,
+                    rain: current.rain_mm,
+                    humidity: current.humidity,
+                    description: current.description
+                });
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error('Weather error:', err);
+                setLoading(false);
+            });
     }, []);
 
-    if (!sensors) {
+    if (loading || !weather) {
         return (
-            <div style={{ padding: '40px', textAlign: 'center' }}>
-                <h2>Loading dashboard...</h2>
+            <div style={{
+                background: 'white',
+                padding: '20px',
+                borderRadius: '12px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            }}>
+                Loading weather...
             </div>
         );
     }
 
+    const getWeatherIcon = (desc) => {
+        if (desc.includes('rain')) return '🌧️';
+        if (desc.includes('cloud')) return '☁️';
+        if (desc.includes('clear')) return '☀️';
+        return '🌤️';
+    };
+
     return (
-        <div className="App">
-            <header style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white',
-                padding: '24px',
-                marginBottom: '24px'
-            }}>
-                <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                            <h1 style={{ margin: '0 0 8px 0' }}>Patna Flood Monitoring System</h1>
-                            <p style={{ margin: 0, opacity: 0.9 }}>
-                                {sensors.location} • {new Date(sensors.timestamp).toLocaleString()}
-                            </p>
-                        </div>
-                        <StatusBadge isLive={isConnected} />
-                    </div>
+        <div style={{
+            background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)',
+            color: 'white',
+            padding: '24px',
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(59,130,246,0.3)'
+        }}>
+            <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>
+                Current Weather - {weather.city}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
+                <div style={{ fontSize: '48px' }}>
+                    {getWeatherIcon(weather.description)}
                 </div>
-            </header>
-
-            <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px 40px' }}>
-                {/* Global Sensors */}
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-                    gap: '16px',
-                    marginBottom: '32px'
-                }}>
-                    <SensorCard
-                        title="Water Level"
-                        value={sensors.global.water_level_m}
-                        unit="m"
-                        status={sensors.global.status}
-                    />
-                    <SensorCard
-                        title="Rainfall"
-                        value={sensors.global.rainfall_mm_hr}
-                        unit="mm/hr"
-                    />
-                    <SensorCard
-                        title="Danger Mark"
-                        value={sensors.global.danger_mark}
-                        unit=""
-                    />
-                </div>
-
-                {/* Map */}
-                <div style={{ marginBottom: '32px' }}>
-                    <h2 style={{ marginBottom: '16px' }}>Panchayat-Level Monitoring</h2>
-                    <MapView panchayats={sensors.panchayats} />
-                </div>
-
-                {/* Panchayat Grid */}
                 <div>
-                    <h2 style={{ marginBottom: '16px' }}>All Panchayats</h2>
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                        gap: '16px'
-                    }}>
-                        {sensors.panchayats.map((p, idx) => (
-                            <SensorCard
-                                key={idx}
-                                title={p.name}
-                                value={p.water}
-                                unit="m"
-                                status={p.status}
-                            />
-                        ))}
+                    <div style={{ fontSize: '36px', fontWeight: 'bold' }}>
+                        {weather.temp}°C
+                    </div>
+                    <div style={{ fontSize: '14px', textTransform: 'capitalize' }}>
+                        {weather.description}
                     </div>
                 </div>
-            </main>
+            </div>
+            <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: '1fr 1fr', 
+                gap: '12px',
+                paddingTop: '16px',
+                borderTop: '1px solid rgba(255,255,255,0.2)'
+            }}>
+                <div>
+                    <div style={{ fontSize: '12px', opacity: 0.8 }}>Rainfall</div>
+                    <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
+                        {weather.rain} mm
+                    </div>
+                </div>
+                <div>
+                    <div style={{ fontSize: '12px', opacity: 0.8 }}>Humidity</div>
+                    <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
+                        {weather.humidity}%
+                    </div>
+                </div>
+            </div>
         </div>
     );
-}
+};
 
-export default App;
+export default WeatherCard;

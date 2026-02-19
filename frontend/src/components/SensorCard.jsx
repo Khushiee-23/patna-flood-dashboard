@@ -21,20 +21,30 @@ const SensorCard = ({ title, value, unit, status }) => {
             <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#333' }}>
                 {value} <span style={{ fontSize: '18px', color: '#999' }}>{unit}</span>
             </div>
-            {status && (
-                <div style={{
-                    marginTop: '12px',
-                    padding: '6px 12px',
-                    background: getStatusColor(),
-                    color: 'white',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                    display: 'inline-block'
-                }}>
-                    {status}
-                </div>
-            )}
+           {status && (
+    <>
+        <div style={{
+            marginTop: '12px',
+            padding: '6px 12px',
+            background: getStatusColor(),
+            color: 'white',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            display: 'inline-block'
+        }}>
+            {status}
+        </div>
+        <div style={{
+            marginTop: '8px',
+            fontSize: '10px',
+            color: '#10b981',
+            fontWeight: 'bold'
+        }}>
+            ✓ Real-time OpenWeather data
+        </div>
+    </>
+)}
         </div>
     );
 };

@@ -145,13 +145,89 @@ async function fetchRealWeather() {
     }
 }
 
+
+
+// === FETCH REAL GANGA WATER LEVEL FROM INDIA-WRIS ===
+async function fetchIndiaWRISWaterLevel() {
+    try {
+        const today = new Date();
+        const dateStr = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+
+        const response = await axios.post(
+            'https://indiawris.gov.in/wris/Data%20API%20Based%20On%20Admin%20Hierarchy/getWaterLevel', {
+                stateName: "Bihar",
+                districtName: "Patna",
+                agencyName: "CWC",
+                startdate: dateStr,
+                enddate: dateStr,
+                download: false,
+                page: 0,
+                size: 10
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'FloodMonitoringSystem/1.0'
+                },
+                timeout: 15000
+            }
+        );
+
+        console.log('📡 India-WRIS Response:', response.data);
+
+        // Parse the response (structure may vary)
+        if (response.data && response.data.data && response.data.data.length > 0) {
+            const latestReading = response.data.data[0];
+
+            // Look for water level field (check actual response structure)
+            const waterLevel = latestReading.waterLevel ||
+                latestReading.water_level ||
+                latestReading.level ||
+                latestReading.gauge_height;
+
+            if (waterLevel) {
+                const level = parseFloat(waterLevel);
+                console.log('✅ India-WRIS REAL DATA | Patna Ganga:', level, 'm');
+                return level;
+            }
+        }
+
+        console.log('⚠️ India-WRIS: No data available for today');
+        return null;
+
+    } catch (err) {
+        if (err.response) {
+            console.log('⚠️ India-WRIS API error:', err.response.status);
+            console.log('Response:', err.response.data);
+        } else if (err.code === 'ECONNABORTED') {
+            console.log('⚠️ India-WRIS API timeout');
+        } else {
+            console.log('⚠️ India-WRIS error:', err.message);
+        }
+        return null;
+    }
+}
+
+
+
 // === SIMULATION FUNCTION WITH REAL DATA ===
 async function runSimulation() {
     const now = Date.now() / 1000;
 
+    // Try to fetch REAL Ganga water level from India-WRIS
+    const realLevel = await fetchIndiaWRISWaterLevel();
+
+    if (realLevel) {
+        baseWaterLevel = realLevel;
+        console.log('🌊 Using REAL India-WRIS water level:', realLevel, 'm');
+    } else {
+        console.log('📊 Using calculated water level (India-WRIS unavailable)');
+    }
+
     // Fetch REAL current weather
     const weather = await fetchRealWeather();
     const rain = weather.rainfall_mm_hr;
+
+
 
     // Accumulate rainfall (decays over 24 hours)
     accumulatedRainfall = accumulatedRainfall * 0.95 + rain; // 5% decay per 5 min
